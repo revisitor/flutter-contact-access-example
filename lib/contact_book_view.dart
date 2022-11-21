@@ -2,6 +2,7 @@ import 'package:fast_contacts/fast_contacts.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'contact.dart';
 import 'contact_book_item.dart';
 
 class PhoneBookView extends StatefulWidget {
@@ -12,13 +13,14 @@ class PhoneBookView extends StatefulWidget {
 }
 
 class _PhoneBookViewState extends State<PhoneBookView> {
-  final List<Contact> _contacts = [];
-  List<Contact> _filteredContacts = [];
+  final List<ContactModel> _contacts = [];
+  List<ContactModel> _filteredContacts = [];
 
   @override
   void initState() {
     super.initState();
-    _getContacts().then((contacts) {
+    _getFastContacts().then((fastContacts) {
+      final contacts = fastContacts.map(_fastContactToContactModel);
       setState(() {
         _contacts.addAll(contacts);
         _filteredContacts.addAll(contacts);
@@ -26,9 +28,17 @@ class _PhoneBookViewState extends State<PhoneBookView> {
     });
   }
 
-  Future<List<Contact>> _getContacts() async {
+  Future<List<Contact>> _getFastContacts() async {
     await Permission.contacts.request();
     return await FastContacts.allContacts;
+  }
+
+  ContactModel _fastContactToContactModel(Contact contact) {
+    return ContactModel(
+      name: contact.displayName,
+      phone: contact.phones.isNotEmpty ? contact.phones.first : '',
+      email: contact.emails.isNotEmpty ? contact.emails.first : '',
+    );
   }
 
   @override
@@ -64,7 +74,7 @@ class _PhoneBookViewState extends State<PhoneBookView> {
     final lowerCaseQuery = query.trim().toLowerCase();
     if (lowerCaseQuery.isNotEmpty) {
       final suggestions = _filteredContacts.where((contact) {
-        return contact.displayName.toLowerCase().contains(lowerCaseQuery);
+        return contact.name.toLowerCase().contains(lowerCaseQuery);
       });
 
       _replaceFilteredContacts(suggestions);
@@ -73,7 +83,7 @@ class _PhoneBookViewState extends State<PhoneBookView> {
     }
   }
 
-  void _replaceFilteredContacts(Iterable<Contact> contacts) {
+  void _replaceFilteredContacts(Iterable<ContactModel> contacts) {
     setState(() {
       _filteredContacts = contacts.toList(growable: false);
     });
